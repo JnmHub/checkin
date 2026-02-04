@@ -1,12 +1,14 @@
+import httpx  # 用于发送异步网络请求
+from app.utils.auth import create_access_token
+from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Body, status
 from sqlalchemy.orm import Session
-import httpx  # 用于发送异步网络请求
 from app.api import deps
-from app.models import Employee
-from app.utils.auth import create_access_token
-from app.utils.pwd import verify_password
-from app.core.config import settings
-from app.core.cache import session_manager  # 导入刚才写的内存缓存器
+from app.api.deps import CurrentEmployee, SessionDep  # 使用我们封装好的简写指令
+from app.models import Employee, Admin
+from app.utils.pwd import verify_password, get_password_hash
+from app.core.cache import session_manager
+from app.schemas import PasswordUpdate, Result
 
 router = APIRouter(prefix="/auth", tags=["身份鉴权"])
 
@@ -99,3 +101,70 @@ async def wechat_login(
             "account": employee.account
         }
     }
+
+
+
+
+@router.post("/change_password")
+async def change_password(
+        data: PasswordUpdate,
+        current_user: CurrentEmployee,  # 门卫会自动从 Token 中解析出当前员工对象
+        db: SessionDep
+):
+    """
+    员工自行修改密码接口
+    流程：
+    1. 校验旧密码是否正确
+    2. 加密并存入新密码
+    3. 清空该员工在内存缓存中的所有登录凭证 (强制重新登录)
+    """
+
+    # 1. 校验旧密码
+    # current_user 是由 CurrentEmployee 依赖项直接从数据库抓取出来的对象
+    if not verify_password(data.old_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="原密码验证失败"
+        )
+
+    # 2. 更新密码哈希值
+    current_user.password_hash = get_password_hash(data.new_password)
+    db.add(current_user)
+    db.commit()
+
+    # 3. 【核心步骤】清空内存缓存
+    # 调用 session_manager，传入员工 ID 和角色
+    # 这样该员工手里现有的所有 Token 都会在下一次请求时被 deps.get_current_employee 拦截
+    session_manager.clear_user_sessions(current_user.id, "employee")
+
+    return {"msg": "密码修改成功，请使用新密码重新登录"}
+
+
+
+@router.post("/admin_login")
+async def admin_login(
+    db: SessionDep,
+    username: str = Body(...),
+    password: str = Body(...),
+):
+    """
+    管理端后台登录接口
+    """
+    # 1. 查找管理员
+    admin = db.query(Admin).filter(Admin.username == username).first()
+    if not admin or not verify_password(password, admin.password_hash):
+        raise HTTPException(status_code=401, detail="管理员账号或密码错误")
+
+    # 2. 生成 Token
+    expire_seconds = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    access_token = create_access_token(data={"sub": str(admin.id)})
+
+    # 3. 写入缓存，角色标记为 admin
+    session_manager.set_session(
+        token=access_token,
+        user_id=admin.id,
+        role="admin",
+        expire_in_seconds=expire_seconds
+    )
+
+    return Result.success(data={"access_token": access_token}, msg="管理员登录成功")

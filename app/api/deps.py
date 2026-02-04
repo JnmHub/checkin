@@ -1,10 +1,10 @@
 from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
-from typing import Generator, Optional, Any, Coroutine, Annotated
+from typing import Generator, Optional, Any, Coroutine, Annotated, Type
 
 from app.db.session import SessionLocal
-from app.models import Employee
+from app.models import Employee, Admin
 from app.core.config import settings
 from app.core.cache import session_manager  # 导入你的内存缓存器
 
@@ -21,7 +21,7 @@ def get_db() -> Generator:
     finally:
         db.close()
 
-
+SessionDep = Annotated[Session, Depends(get_db)]
 # 2. 核心：验证 Token 并获取当前员工 (从缓存+数据库双重校验)
 async def get_current_employee(
         db: Session = Depends(get_db),
@@ -88,3 +88,33 @@ async def get_current_employee(
 
 
 CurrentEmployee = Annotated[Employee, Depends(get_current_employee)]
+
+
+async def get_current_admin(
+    db: SessionDep,
+    token: str = Header(..., description="管理员 access_token")
+) -> Type[Admin]:
+    """
+    专门校验管理员身份的门卫
+    """
+    unauthorized_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="管理员登录失效",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    # 1. 查缓存
+    session_data = session_manager.get_session(token)
+    if not session_data or session_data.get("role") != "admin":
+        raise unauthorized_exception
+
+    # 2. 查数据库确认管理员还存在
+    admin_id = session_data.get("user_id")
+    admin = db.query(Admin).filter(Admin.id == admin_id).first()
+    if not admin:
+        raise unauthorized_exception
+
+    return admin
+
+# --- 封装管理员极简指令 ---
+CurrentAdmin = Annotated[Admin, Depends(get_current_admin)]

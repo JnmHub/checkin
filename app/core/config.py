@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str = "attendance"
 
     # --- 高德 API 配置 ---
-    AMAP_KEY: str = "你的高德API_KEY"
+    AMAP_KEY: str = "3b36ab78a7a40a0e1a1f3ea23400f6a8"
 
     class Config:
         # 告诉 Pydantic 优先读取项目根目录下的 .env 文件
