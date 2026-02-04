@@ -92,7 +92,7 @@ async def wechat_login(
         expire_in_seconds=expire_minutes * 60
     )
 
-    return {
+    return Result.success(data={
         "access_token": access_token,
         "token_type": "bearer",
         "employee_info": {
@@ -100,7 +100,7 @@ async def wechat_login(
             "name": employee.name,
             "account": employee.account
         }
-    }
+    }, msg="登录成功")
 
 
 
@@ -137,7 +137,7 @@ async def change_password(
     # 这样该员工手里现有的所有 Token 都会在下一次请求时被 deps.get_current_employee 拦截
     session_manager.clear_user_sessions(current_user.id, "employee")
 
-    return {"msg": "密码修改成功，请使用新密码重新登录"}
+    return Result.success(msg="密码修改成功，请重新登录")
 
 
 

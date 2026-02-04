@@ -66,6 +66,21 @@ class SessionManager:
         if user_key in self._user_to_tokens:
             del self._user_to_tokens[user_key]
 
+    def get_active_count(self, prefix: str) -> int:
+        """
+        统计指定角色的在线人数 (去重后的用户数)
+        prefix: 传入 'admin' 或 'employee'
+        """
+        current_time = time.time()
+        active_user_ids = set()
+
+        # 遍历所有 session 记录
+        for token, data in self._sessions.items():
+            # 校验角色是否匹配，并且 Token 是否未过期
+            if data["role"] == prefix and data["expire_at"] > current_time:
+                active_user_ids.add(data["user_id"])
+
+        return len(active_user_ids)
 
 # 全局单例
 session_manager = SessionManager()

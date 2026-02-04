@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean  # 导入常用的字段类型和外键约束
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Table  # 导入常用的字段类型和外键约束
 from sqlalchemy.ext.declarative import declarative_base  # 导入声明式基类的构造函数
 from datetime import datetime  # 导入 Python 标准库的日期时间模块
+
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()  # 创建所有数据库模型的基类，用于跟踪所有映射的表
 
@@ -19,6 +21,12 @@ class Employee(Base):
     wechat_openid = Column(String(100), unique=True, nullable=True)
     is_active = Column(Boolean, default=True)
 
+point_employee_association = Table(
+    "point_employee_association",
+    Base.metadata,
+    Column("point_id", Integer, ForeignKey("check_in_points.id", ondelete="CASCADE"), primary_key=True),
+    Column("employee_id", Integer, ForeignKey("employees.id", ondelete="CASCADE"), primary_key=True),
+)
 
 class CheckInPoint(Base):  # 定义打卡点（地理围栏）模型类
     __tablename__ = "check_in_points"  # 设置数据库中对应的表名为 check_in_points
@@ -28,7 +36,11 @@ class CheckInPoint(Base):  # 定义打卡点（地理围栏）模型类
     latitude = Column(Float)  # 打卡点中心位置的纬度（高德坐标系）
     longitude = Column(Float)  # 打卡点中心位置的经度（高德坐标系）
     radius = Column(Integer, default=500)  # 允许打卡的有效半径，单位为米，默认为 500 米
-
+    employees = relationship(
+        "Employee",
+        secondary=point_employee_association,
+        backref="checkin_points"
+    )
 class CheckInRecord(Base):  # 定义打卡记录模型类
     __tablename__ = "check_in_records"  # 设置数据库中对应的表名为 check_in_records
     id = Column(Integer, primary_key=True, index=True)  # 记录唯一自增 ID

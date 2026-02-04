@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, status, Body, Depends, Query
 from typing import List, Optional
 from app.api.deps import SessionDep, CurrentAdmin
 from app.models import Admin
-from app.schemas import AdminCreate, AdminOut, AdminUpdate, Result, PasswordUpdate
-from app.utils.pwd import get_password_hash
+from app.schemas import AdminCreate, AdminOut, AdminUpdate, Result, PasswordUpdate, AdminPasswordUpdate
+from app.utils.pwd import get_password_hash, verify_password
 from app.core.cache import session_manager
 
 router = APIRouter(prefix="/admin/manage", tags=["管理端-管理员管理"])
@@ -119,3 +119,32 @@ def delete_admin(
     db.delete(db_obj)
     db.commit()
     return Result.success(msg="管理员账号已移除")
+
+@router.post("/password_myself", response_model=Result)
+def change_admin_password_myself(
+    obj_in: AdminPasswordUpdate, # 使用新定义的 Schema
+    db: SessionDep,
+    current: CurrentAdmin,
+):
+    """
+    修改管理员密码（带原密码验证）
+    """
+    admin_id = current.id
+
+    db_obj = db.query(Admin).filter(Admin.id == admin_id).first()
+    if not db_obj:
+        raise HTTPException(status_code=404, detail="账号不存在")
+
+    # 3. 【核心】验证原密码是否正确
+    if not verify_password(obj_in.old_password, db_obj.password_hash):
+        raise HTTPException(status_code=400, detail="原密码错误，请重新输入")
+
+    # 4. 更新加密后的新密码
+    db_obj.password_hash = get_password_hash(obj_in.new_password)
+    db.add(db_obj)
+    db.commit()
+
+    # 5. 强制清除 Session，让所有设备重新登录
+    session_manager.clear_user_sessions(admin_id, "admin")
+
+    return Result.success(msg="密码已更新，请重新登录")
