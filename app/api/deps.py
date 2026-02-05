@@ -1,7 +1,9 @@
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Depends, HTTPException, status, Header, Query
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from typing import Generator, Optional, Any, Coroutine, Annotated, Type
+
+from sqlalchemy.testing.pickleable import User
 
 from app.db.session import SessionLocal
 from app.models import Employee, Admin
@@ -89,6 +91,22 @@ async def get_current_employee(
 
 CurrentEmployee = Annotated[Employee, Depends(get_current_employee)]
 
+async def get_current_user(
+        token: Optional[str] = Header(None, description="登录凭证"),
+        query_token: Optional[str] = Query(None, description="登录凭证"),
+):
+    finsh_token = token or query_token
+    unauthorized_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="管理员登录失效",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    session_data = session_manager.get_session(finsh_token)
+    if not session_data:
+        raise unauthorized_exception
+    return session_data
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 async def get_current_admin(
     db: SessionDep,

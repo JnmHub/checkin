@@ -77,3 +77,4 @@ def update_point(
     db.commit()
     db.refresh(db_obj)
     return Result.success(data=db_obj)
+

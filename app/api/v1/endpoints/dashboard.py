@@ -30,3 +30,4 @@ def get_dashboard_stats(db: SessionDep, current: CurrentAdmin):
         "today_checkin_count": today_checkin_count,    # 对应 128
         "online_employee_count": online_employee_count # 对应 45
     })
+

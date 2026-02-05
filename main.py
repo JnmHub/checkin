@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.session import engine
 from app.models import Base
-from app.api.v1.endpoints import checkin, employee_admin, login, admin_manage, point_admin, dashboard
+from app.api.v1.endpoints import checkin, employee_admin, login, admin_manage, point_admin, dashboard, geo
 from init_db import init_admin
 
 # 自动建表
@@ -54,6 +54,7 @@ app.include_router(employee_admin.router, prefix="/api/v1")
 app.include_router(admin_manage.router, prefix="/api/v1")
 app.include_router(point_admin.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(geo.router, prefix="/api/v1")
 @app.get("/")
 async def root():
     return {"code": 200, "msg": "API 服务运行中", "data": None}

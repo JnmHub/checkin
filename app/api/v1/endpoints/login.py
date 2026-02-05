@@ -23,7 +23,7 @@ async def wechat_login(
     """
     员工登录并绑定微信 OpenID，同时写入内存缓存
     """
-
+    code = "123456"
     # 1. 查找员工
     employee = db.query(Employee).filter(Employee.account == account).first()
 
@@ -42,29 +42,29 @@ async def wechat_login(
         )
 
     # 4. 拿着 code 去微信服务器换取 openid
-    wechat_url = "https://api.weixin.qq.com/sns/jscode2session"
-    # 注意：这里确保你的 settings 里面有这些字段，或者先写死测试
-    params = {
-        "appid": getattr(settings, "WECHAT_APPID", "你的小程序AppID"),
-        "secret": getattr(settings, "WECHAT_SECRET", "你的小程序AppSecret"),
-        "js_code": code,
-        "grant_type": "authorization_code"
-    }
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(wechat_url, params=params)
-            res_data = response.json()
-
-        if "openid" not in res_data:
-            err_msg = res_data.get("errmsg", "未知微信接口错误")
-            raise HTTPException(status_code=400, detail=f"微信登录失败: {err_msg}")
-
-        openid = res_data["openid"]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"微信服务连接失败: {str(e)}")
-
+    # wechat_url = "https://api.weixin.qq.com/sns/jscode2session"
+    # # 注意：这里确保你的 settings 里面有这些字段，或者先写死测试
+    # params = {
+    #     "appid": getattr(settings, "WECHAT_APPID", "你的小程序AppID"),
+    #     "secret": getattr(settings, "WECHAT_SECRET", "你的小程序AppSecret"),
+    #     "js_code": code,
+    #     "grant_type": "authorization_code"
+    # }
+    #
+    # try:
+    #     async with httpx.AsyncClient() as client:
+    #         response = await client.get(wechat_url, params=params)
+    #         res_data = response.json()
+    #
+    #     if "openid" not in res_data:
+    #         err_msg = res_data.get("errmsg", "未知微信接口错误")
+    #         raise HTTPException(status_code=400, detail=f"微信登录失败: {err_msg}")
+    #
+    #     openid = res_data["openid"]
+    #
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"微信服务连接失败: {str(e)}")
+    openid = "123456"
     # 5. 绑定/校验 OpenID 逻辑
     if not employee.wechat_openid:
         # 第一次登录：进行静默绑定

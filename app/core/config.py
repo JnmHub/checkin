@@ -17,12 +17,12 @@ class Settings(BaseSettings):
 
     # --- MinIO 配置 ---
     MINIO_ENDPOINT: str = "127.0.0.1:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
-    MINIO_BUCKET: str = "attendance"
+    MINIO_ACCESS_KEY: str = "DD8lDpIvnnIFriKxODPZ"
+    MINIO_SECRET_KEY: str = "GVPNJOgrS1hqsZLcO3mffTJCnPyc1k8wRJgDujU7"
+    MINIO_BUCKET: str = "ddd"
 
     # --- 高德 API 配置 ---
-    AMAP_KEY: str = "3b36ab78a7a40a0e1a1f3ea23400f6a8"
+    AMAP_WEB_KEY: str = "3b36ab78a7a40a0e1a1f3ea23400f6a8"
 
     class Config:
         # 告诉 Pydantic 优先读取项目根目录下的 .env 文件

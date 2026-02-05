@@ -119,3 +119,16 @@ class AdminOut(AdminBase):
 class AdminPasswordUpdate(BaseModel):
     old_password: str  # 当前密码
     new_password: str  # 新密码
+
+
+class CheckInRecordOut(BaseModel):
+    id: int
+    create_time: datetime
+    location_name: str
+    photo_url: str
+    point_id: int
+    # 增加一个字段展示打卡点的名称
+    point_title: Optional[str] = None
+
+    class Config:
+        from_attributes = True
